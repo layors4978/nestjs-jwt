@@ -4,8 +4,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import { Repository, Not } from 'typeorm';
+import * as argon from 'argon2';
 import { User } from '../entities/user.entity';
 import { UserDto } from './dto/user.dto';
 import { tokens } from 'src/types/tokens';
@@ -24,7 +24,7 @@ export class AuthService {
       throw new BadRequestException();
     }
 
-    const hashedPassword = await this.hash(dto.password);
+    const hashedPassword = await argon.hash(dto.password);
 
     const user = await this.repo.create({
       email: dto.email,
@@ -46,7 +46,31 @@ export class AuthService {
       throw new ForbiddenException();
     }
 
-    const isMatch = await bcrypt.compare(dto.password, user.password);
+    const isMatch = await argon.verify(user.password, dto.password);
+    if (!isMatch) {
+      throw new ForbiddenException();
+    }
+
+    const tokens = await this.jwtService.getTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return tokens;
+  }
+
+  async logout(id: number) {
+    return await this.repo.update(
+      { id, refreshToken: Not('') },
+      { refreshToken: '' },
+    );
+  }
+
+  async refresh(id: number, refreshToken: string) {
+    const user = await this.repo.findOneBy({ id });
+    if (!user || !user.refreshToken) {
+      throw new ForbiddenException();
+    }
+
+    const isMatch = await argon.verify(user.refreshToken, refreshToken);
     if (!isMatch) {
       throw new ForbiddenException();
     }
@@ -61,11 +85,8 @@ export class AuthService {
     return this.repo.delete({});
   }
 
-  hash(data) {
-    return bcrypt.hash(data, 12);
-  }
-
   async updateRefreshToken(id: number, refreshToken: string) {
-    await this.repo.update(id, { refreshToken: refreshToken });
+    const hashedToken = await argon.hash(refreshToken);
+    await this.repo.update(id, { refreshToken: hashedToken });
   }
 }
