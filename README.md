@@ -2,7 +2,7 @@
 
 ## Description
 
-<p>Practice for access token and refresh token.</p>
+<p>Practice for access token and refresh token on NestJS.</p>
 
 ## APIs
 
