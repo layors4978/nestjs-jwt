@@ -6,7 +6,10 @@ import { tokens } from 'src/types/tokens';
 export class JWTService {
   constructor(private jwtService: JwtService) {}
 
+  // generate tokens
   async getTokens(id: number, email: string): Promise<tokens> {
+    // access token for 15 mins
+    // refresh token for 7 days
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {

@@ -6,14 +6,16 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 export class AccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor() {
     super({
+      // extract jwt from header Authorization
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      // verify the secret
       secretOrKey: 'VeryLongStringForAccessToken',
     });
   }
 
   validate(payload: any) {
-    return payload;
     //req.user = payload
+    return payload;
   }
 }

@@ -10,16 +10,20 @@ export class RefreshTokenStrategy extends PassportStrategy(
 ) {
   constructor() {
     super({
+      // extract jwt from header Authorization
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      // verify the secret
       secretOrKey: 'VeryLongStringForRefreshToken',
+      // pass request to validate
       passReqToCallback: true,
     });
   }
 
   validate(req: Request, payload: any) {
+    // extract refresh token
     const refreshToken = req.get('authorization').replace('Bearer', '').trim();
+    // req.user = { ...payload, refreshToken }
     return { ...payload, refreshToken };
-    //req.user = { ...payload, refreshToken }
   }
 }

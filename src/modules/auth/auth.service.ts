@@ -20,6 +20,7 @@ export class AuthService {
 
   async signup(dto: UserDto): Promise<tokens> {
     const existingUser = await this.repo.findOneBy({ email: dto.email });
+    // if email already exist
     if (existingUser) {
       throw new BadRequestException();
     }
@@ -32,6 +33,7 @@ export class AuthService {
       refreshToken: '',
     });
 
+    // id will be generated
     await this.repo.save(user);
 
     const tokens = await this.jwtService.getTokens(user.id, user.email);
@@ -58,6 +60,8 @@ export class AuthService {
   }
 
   async logout(id: number) {
+    // delete refresh token only if id matches and column refreshToken is not empty
+    // preventing spam
     return await this.repo.update(
       { id, refreshToken: Not('') },
       { refreshToken: '' },
@@ -66,6 +70,10 @@ export class AuthService {
 
   async refresh(id: number, refreshToken: string) {
     const user = await this.repo.findOneBy({ id });
+    // if someone loggedout the refresh token will be empty
+    // deleted refresh token can still pass jwt-refresh guard
+    // it'll crash while comparing to empty string
+    // -> || !user.refreshToken
     if (!user || !user.refreshToken) {
       throw new ForbiddenException();
     }
@@ -81,9 +89,10 @@ export class AuthService {
     return tokens;
   }
 
-  dropAll() {
-    return this.repo.delete({});
-  }
+  // // very dangerous
+  // dropAll() {
+  //   return this.repo.delete({});
+  // }
 
   async updateRefreshToken(id: number, refreshToken: string) {
     const hashedToken = await argon.hash(refreshToken);
